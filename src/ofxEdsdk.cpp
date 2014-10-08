@@ -23,7 +23,7 @@
 namespace ofxEdsdk {
 	
 	EdsError EDSCALLBACK Camera::handleObjectEvent(EdsObjectEvent event, EdsBaseRef object, EdsVoid* context) {
-		ofLogVerbose() << "object event " << Eds::getObjectEventString(event);
+		ofLogNotice() << "object event " << Eds::getObjectEventString(event);
 		if(object) {
 			if(event == kEdsObjectEvent_DirItemCreated) {
 				((Camera*) context)->setDownloadImage(object);
@@ -41,15 +41,15 @@ namespace ofxEdsdk {
 	}
 	
 	EdsError EDSCALLBACK Camera::handlePropertyEvent(EdsPropertyEvent event, EdsPropertyID propertyId, EdsUInt32 param, EdsVoid* context) {
-		ofLogVerbose() << "property event " << Eds::getPropertyEventString(event) << ": " << Eds::getPropertyIDString(propertyId) << " / " << param;
+		ofLogNotice() << "property event " << Eds::getPropertyEventString(event) << ": " << Eds::getPropertyIDString(propertyId) << " / " << param;
 		if(propertyId == kEdsPropID_Evf_OutputDevice) {
 			((Camera*) context)->setLiveReady(true);
 		}
 		return EDS_ERR_OK;
 	}
-	
+
 	EdsError EDSCALLBACK Camera::handleCameraStateEvent(EdsStateEvent event, EdsUInt32 param, EdsVoid* context) {
-		ofLogVerbose() << "camera state event " << Eds::getStateEventString(event) << ": " << param;
+		ofLogNotice() << "camera state event " << Eds::getStateEventString(event) << ": " << param;
 		if(event == kEdsStateEvent_WillSoonShutDown) {
 			((Camera*) context)->setSendKeepAlive();
 		}
@@ -71,6 +71,10 @@ namespace ofxEdsdk {
 	photoDataReady(false),
 	needToSendKeepAlive(false),
 	needToDownloadImage(false),
+    needToCheckFocus(false),
+    needToPressShutterButtonHalfway(false),
+    needToReleaseShutterButton(false),
+    frameFocused(false),
 #ifdef  TARGET_OSX
 	bTryInitLiveView(false),
 #endif
@@ -125,7 +129,7 @@ namespace ofxEdsdk {
 				
                 rotateMode90 = orientationMode90;
 
-				startThread(true, false);
+				startThread(true);
 				return true;
 			} else {
 				ofLogError() << "No cameras are connected for ofxEds::Camera::setup().";
@@ -196,7 +200,11 @@ namespace ofxEdsdk {
 			return false;
 		}
 	}
-	
+
+    bool Camera::isFrameFocused() {
+        return frameFocused;
+    }
+
 	float Camera::getFrameRate() {
 		float frameRate;
 		lock();
@@ -215,7 +223,23 @@ namespace ofxEdsdk {
 			}
 		}
 	}
-    
+
+    void Camera::focusFrame(){
+        lock();
+        needToPressShutterButtonHalfway = true;
+        frameFocused = false;
+        unlock();
+    }
+
+    void Camera::takeFocusedPhoto(){
+        if(frameFocused){
+            lock();
+            frameFocused = false;
+            needToTakePhoto = true;
+            unlock();
+        }
+    }
+
     void Camera::beginMovieRecording()
     {
         lock();
@@ -314,7 +338,7 @@ namespace ofxEdsdk {
 		needToSendKeepAlive = true;
 		unlock();
 	}
-	
+
 	bool Camera::savePhoto(string filename) {
 		return ofBufferToFile(filename, photoBuffer, true);
 	}
@@ -438,12 +462,65 @@ namespace ofxEdsdk {
 					ofLogError() << "Error while downloading item: " << e.what();
 				}
 			}
-			
+
+            if(needToCheckFocus){
+                cout << "check focus\n";
+                try{
+                    EdsFocusInfo focusInfo;
+                    Eds::GetPropertyData(camera, kEdsPropID_FocusInfo, 0, sizeof(focusInfo), &focusInfo);
+
+                    ofLogNotice() << "focus: " << focusInfo.focusPoint[0].justFocus;
+
+                    if(focusInfo.focusPoint[0].justFocus == 17){
+                        lock();
+                        frameFocused = true;
+                        needToCheckFocus = false;
+                        unlock();
+                    }
+
+                    // TODO: check for EDS_ERR_TAKE_PICTURE_AF_NG and release button
+                    else if(focusInfo.focusPoint[0].justFocus == 18){
+                        lock();
+                        frameFocused = false;
+                        needToCheckFocus = false;
+                        needToReleaseShutterButton = true;
+                        unlock();
+                    }
+                } catch (Eds::Exception& e) {
+                    ofLogError() << "Error while checking focus: " << e.what();
+                }
+            }
+
+            if(needToPressShutterButtonHalfway){
+                cout << "halfway\n";
+                try {
+					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Halfway);
+                    lock();
+                    needToCheckFocus = true;
+                    needToPressShutterButtonHalfway = false;
+                    unlock();
+				} catch (Eds::Exception& e) {
+					ofLogError() << "Error while pressing shutter button halfway: " << e.what();
+				}
+            }
+
+            if(needToReleaseShutterButton) {
+                cout << "release\n";
+                try {
+					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
+                    lock();
+                    needToReleaseShutterButton = false;
+                    unlock();
+				} catch (Eds::Exception& e) {
+					ofLogError() << "Error while releasing shutter button: " << e.what();
+				}
+            }
+
 			float timeSinceLastReset = ofGetElapsedTimef() - lastResetTime;
 			if(timeSinceLastReset > resetIntervalMinutes * 60) {
 				resetLiveView();
 			}
-			
+
 			// the t2i can run at 30 fps = 33 ms, so this might cause frame drops
 			ofSleepMillis(5);
 		}

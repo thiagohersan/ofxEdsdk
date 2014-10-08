@@ -40,6 +40,10 @@ namespace ofxEdsdk {
         void endMovieRecording();
         bool isMovieNew();
 
+        void focusFrame();
+        bool isFrameFocused();
+        void takeFocusedPhoto();
+
 	protected:
 		EdsCameraRef camera;
 		
@@ -84,7 +88,11 @@ namespace ofxEdsdk {
 		bool photoDataReady; // Photo data has been downloaded at least once.
 		bool needToSendKeepAlive; // Send keepalive next chance we get.
 		bool needToDownloadImage; // Download image next chance we get.
-        
+        bool needToCheckFocus;
+        bool needToPressShutterButtonHalfway;
+        bool needToReleaseShutterButton;
+        bool frameFocused;
+
         bool movieNew;
         bool needToStartRecording; // threadedFunction() should start recording next chance it gets.
         bool needToStopRecording; // threadedFunction() should start recording next chance it gets.
