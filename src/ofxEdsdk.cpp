@@ -53,9 +53,6 @@ namespace ofxEdsdk {
 		if(event == kEdsStateEvent_WillSoonShutDown) {
 			((Camera*) context)->setSendKeepAlive();
 		}
-        else if(event == kEdsStateEvent_CaptureError){
-			((Camera*) context)->takeUnfocusedPhoto();
-        }
 		return EDS_ERR_OK;
 	}
 	
@@ -78,8 +75,7 @@ namespace ofxEdsdk {
     needToPressShutterButtonHalfway(false),
     needToCompletelyPressShutterButton(false),
     needToReleaseShutterButton(false),
-    frameFocused(false),
-    frameNotReallyFocused(false),
+    currentFocusState(OFX_EDSDK_FOCUS_UNKNOWN),
 #ifdef  TARGET_OSX
 	bTryInitLiveView(false),
 #endif
@@ -206,8 +202,8 @@ namespace ofxEdsdk {
 		}
 	}
 
-    bool Camera::isFrameFocused() {
-        return frameFocused;
+    Camera::FocusState Camera::getFocusState() {
+        return currentFocusState;
     }
 
 	float Camera::getFrameRate() {
@@ -232,31 +228,32 @@ namespace ofxEdsdk {
     void Camera::focusFrame(){
         lock();
         needToPressShutterButtonHalfway = true;
-        frameFocused = false;
+        currentFocusState = OFX_EDSDK_FOCUSING;
         unlock();
     }
 
-    void Camera::takeFocusedPhoto(){
-        if(frameFocused){
-            lock();
-            frameFocused = false;
-            if(frameNotReallyFocused){
-                needToCompletelyPressShutterButton = true;
-            }
-            else{
-                needToTakePhoto = true;
-            }
-            unlock();
-        }
-    }
-    void Camera::takeUnfocusedPhoto(){
+    void Camera::focusFailed(){
         lock();
         needToCheckFocus = false;
         needToReleaseShutterButton = true;
         needToPressShutterButtonHalfway = false;
-        frameFocused = true;
-        frameNotReallyFocused = true;
+        currentFocusState = OFX_EDSDK_FOCUS_FAIL;
         unlock();
+    }
+
+    void Camera::takeFocusedPhoto(){
+        if(currentFocusState == OFX_EDSDK_FOCUS_OK){
+            lock();
+            currentFocusState = OFX_EDSDK_FOCUS_UNKNOWN;
+            needToTakePhoto = true;
+            unlock();
+        }
+        else if(currentFocusState == OFX_EDSDK_FOCUS_FAIL){
+            lock();
+            currentFocusState = OFX_EDSDK_FOCUS_UNKNOWN;
+            needToCompletelyPressShutterButton = true;
+            unlock();
+        }
     }
 
     void Camera::beginMovieRecording()
@@ -483,7 +480,6 @@ namespace ofxEdsdk {
 			}
 
             if(needToCheckFocus){
-                cout << "check focus\n";
                 try{
                     EdsFocusInfo focusInfo;
                     Eds::GetPropertyData(camera, kEdsPropID_FocusInfo, 0, sizeof(focusInfo), &focusInfo);
@@ -498,16 +494,12 @@ namespace ofxEdsdk {
                     }
                     else if(focusInfo.focusPoint[0].justFocus == 17){
                         lock();
-                        frameFocused = true;
+                        currentFocusState = OFX_EDSDK_FOCUS_OK;
                         needToCheckFocus = false;
                         unlock();
                     }
                     else if(focusInfo.focusPoint[0].justFocus == 18){
-                        lock();
-                        frameFocused = false;
-                        needToCheckFocus = false;
-                        needToReleaseShutterButton = true;
-                        unlock();
+                        focusFailed();
                     }
                 } catch (Eds::Exception& e) {
                     ofLogError() << "Error while checking focus: " << e.what();
@@ -515,7 +507,6 @@ namespace ofxEdsdk {
             }
 
             if(needToPressShutterButtonHalfway){
-                cout << "halfway\n";
                 try {
 					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Halfway);
                     lock();
@@ -524,11 +515,13 @@ namespace ofxEdsdk {
                     unlock();
 				} catch (Eds::Exception& e) {
 					ofLogError() << "Error while pressing shutter button halfway: " << e.what();
+                    if(e == EDS_ERR_TAKE_PICTURE_AF_NG){
+                        focusFailed();
+                    }
 				}
             }
 
             if(needToReleaseShutterButton) {
-                cout << "release\n";
                 try {
 					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
                     lock();

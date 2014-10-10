@@ -13,6 +13,7 @@ namespace ofxEdsdk {
 	
 	class Camera : public ofThread {
 	public:
+        enum FocusState { OFX_EDSDK_FOCUS_UNKNOWN, OFX_EDSDK_FOCUSING, OFX_EDSDK_FOCUS_OK, OFX_EDSDK_FOCUS_FAIL };
 		Camera();
 		~Camera();
 		bool setup(int deviceId = 0, int orientationMode90 = 0);
@@ -41,9 +42,8 @@ namespace ofxEdsdk {
         bool isMovieNew();
 
         void focusFrame();
-        bool isFrameFocused();
+        FocusState getFocusState();
         void takeFocusedPhoto();
-        void takeUnfocusedPhoto();
 
 	protected:
 		EdsCameraRef camera;
@@ -93,7 +93,9 @@ namespace ofxEdsdk {
         bool needToPressShutterButtonHalfway;
         bool needToCompletelyPressShutterButton;
         bool needToReleaseShutterButton;
-        bool frameFocused, frameNotReallyFocused;
+
+        FocusState currentFocusState;
+        void focusFailed();
 
         bool movieNew;
         bool needToStartRecording; // threadedFunction() should start recording next chance it gets.
