@@ -53,6 +53,9 @@ namespace ofxEdsdk {
 		if(event == kEdsStateEvent_WillSoonShutDown) {
 			((Camera*) context)->setSendKeepAlive();
 		}
+        else if(event == kEdsStateEvent_CaptureError){
+			((Camera*) context)->takeUnfocusedPhoto();
+        }
 		return EDS_ERR_OK;
 	}
 	
@@ -73,8 +76,10 @@ namespace ofxEdsdk {
 	needToDownloadImage(false),
     needToCheckFocus(false),
     needToPressShutterButtonHalfway(false),
+    needToCompletelyPressShutterButton(false),
     needToReleaseShutterButton(false),
     frameFocused(false),
+    frameNotReallyFocused(false),
 #ifdef  TARGET_OSX
 	bTryInitLiveView(false),
 #endif
@@ -235,9 +240,23 @@ namespace ofxEdsdk {
         if(frameFocused){
             lock();
             frameFocused = false;
-            needToTakePhoto = true;
+            if(frameNotReallyFocused){
+                needToCompletelyPressShutterButton = true;
+            }
+            else{
+                needToTakePhoto = true;
+            }
             unlock();
         }
+    }
+    void Camera::takeUnfocusedPhoto(){
+        lock();
+        needToCheckFocus = false;
+        needToReleaseShutterButton = true;
+        needToPressShutterButtonHalfway = false;
+        frameFocused = true;
+        frameNotReallyFocused = true;
+        unlock();
     }
 
     void Camera::beginMovieRecording()
@@ -471,14 +490,18 @@ namespace ofxEdsdk {
 
                     ofLogNotice() << "focus: " << focusInfo.focusPoint[0].justFocus;
 
-                    if(focusInfo.focusPoint[0].justFocus == 17){
+                    if(focusInfo.focusPoint[0].justFocus == 16){
+                        Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
+                        lock();
+                        needToPressShutterButtonHalfway = true;
+                        unlock();
+                    }
+                    else if(focusInfo.focusPoint[0].justFocus == 17){
                         lock();
                         frameFocused = true;
                         needToCheckFocus = false;
                         unlock();
                     }
-
-                    // TODO: check for EDS_ERR_TAKE_PICTURE_AF_NG and release button
                     else if(focusInfo.focusPoint[0].justFocus == 18){
                         lock();
                         frameFocused = false;
@@ -513,6 +536,18 @@ namespace ofxEdsdk {
                     unlock();
 				} catch (Eds::Exception& e) {
 					ofLogError() << "Error while releasing shutter button: " << e.what();
+				}
+            }
+
+            if(needToCompletelyPressShutterButton){
+                try {
+					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
+                    lock();
+                    needToReleaseShutterButton = true;
+                    needToCompletelyPressShutterButton = false;
+                    unlock();
+				} catch (Eds::Exception& e) {
+					ofLogError() << "Error while completely pressing shutter button: " << e.what();
 				}
             }
 
