@@ -475,8 +475,6 @@ namespace ofxEdsdk {
                     EdsFocusInfo focusInfo;
                     Eds::GetPropertyData(camera, kEdsPropID_FocusInfo, 0, sizeof(focusInfo), &focusInfo);
 
-                    ofLogVerbose() << "focus: " << focusInfo.focusPoint[0].justFocus;
-
                     if(focusInfo.focusPoint[0].justFocus == 16){
                         Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
                         lock();
