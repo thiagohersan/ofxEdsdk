@@ -241,19 +241,10 @@ namespace ofxEdsdk {
         unlock();
     }
 
-    void Camera::takeFocusedPhoto(){
-        if(currentFocusState == OFX_EDSDK_FOCUS_OK){
-            lock();
-            currentFocusState = OFX_EDSDK_FOCUS_UNKNOWN;
-            needToTakePhoto = true;
-            unlock();
-        }
-        else if(currentFocusState == OFX_EDSDK_FOCUS_FAIL){
-            lock();
-            currentFocusState = OFX_EDSDK_FOCUS_UNKNOWN;
-            needToCompletelyPressShutterButton = true;
-            unlock();
-        }
+    void Camera::takePhotoAF(){
+        lock();
+        needToCompletelyPressShutterButton = true;
+        unlock();
     }
 
     void Camera::beginMovieRecording()
@@ -534,8 +525,14 @@ namespace ofxEdsdk {
 
             if(needToCompletelyPressShutterButton){
                 try {
-                    Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
+                    if(currentFocusState == OFX_EDSDK_FOCUS_FAIL){
+                        Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
+                    }
+                    else if(currentFocusState == OFX_EDSDK_FOCUS_OK){
+                        Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely);
+                    }
                     lock();
+                    currentFocusState = OFX_EDSDK_FOCUS_UNKNOWN;
                     needToReleaseShutterButton = true;
                     needToCompletelyPressShutterButton = false;
                     unlock();

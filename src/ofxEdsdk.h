@@ -43,7 +43,7 @@ namespace ofxEdsdk {
 
         void focusFrame();
         FocusState getFocusState();
-        void takeFocusedPhoto();
+        void takePhotoAF();
 
 	protected:
 		EdsCameraRef camera;
