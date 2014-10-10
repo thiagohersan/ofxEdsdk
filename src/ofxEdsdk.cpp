@@ -23,7 +23,7 @@
 namespace ofxEdsdk {
 	
 	EdsError EDSCALLBACK Camera::handleObjectEvent(EdsObjectEvent event, EdsBaseRef object, EdsVoid* context) {
-		ofLogNotice() << "object event " << Eds::getObjectEventString(event);
+		ofLogVerbose() << "object event " << Eds::getObjectEventString(event);
 		if(object) {
 			if(event == kEdsObjectEvent_DirItemCreated) {
 				((Camera*) context)->setDownloadImage(object);
@@ -41,7 +41,7 @@ namespace ofxEdsdk {
 	}
 	
 	EdsError EDSCALLBACK Camera::handlePropertyEvent(EdsPropertyEvent event, EdsPropertyID propertyId, EdsUInt32 param, EdsVoid* context) {
-		ofLogNotice() << "property event " << Eds::getPropertyEventString(event) << ": " << Eds::getPropertyIDString(propertyId) << " / " << param;
+		ofLogVerbose() << "property event " << Eds::getPropertyEventString(event) << ": " << Eds::getPropertyIDString(propertyId) << " / " << param;
 		if(propertyId == kEdsPropID_Evf_OutputDevice) {
 			((Camera*) context)->setLiveReady(true);
 		}
@@ -49,7 +49,7 @@ namespace ofxEdsdk {
 	}
 
 	EdsError EDSCALLBACK Camera::handleCameraStateEvent(EdsStateEvent event, EdsUInt32 param, EdsVoid* context) {
-		ofLogNotice() << "camera state event " << Eds::getStateEventString(event) << ": " << param;
+		ofLogVerbose() << "camera state event " << Eds::getStateEventString(event) << ": " << param;
 		if(event == kEdsStateEvent_WillSoonShutDown) {
 			((Camera*) context)->setSendKeepAlive();
 		}
@@ -484,7 +484,7 @@ namespace ofxEdsdk {
                     EdsFocusInfo focusInfo;
                     Eds::GetPropertyData(camera, kEdsPropID_FocusInfo, 0, sizeof(focusInfo), &focusInfo);
 
-                    ofLogNotice() << "focus: " << focusInfo.focusPoint[0].justFocus;
+                    ofLogVerbose() << "focus: " << focusInfo.focusPoint[0].justFocus;
 
                     if(focusInfo.focusPoint[0].justFocus == 16){
                         Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
@@ -508,13 +508,13 @@ namespace ofxEdsdk {
 
             if(needToPressShutterButtonHalfway){
                 try {
-					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Halfway);
+                    Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Halfway);
                     lock();
                     needToCheckFocus = true;
                     needToPressShutterButtonHalfway = false;
                     unlock();
-				} catch (Eds::Exception& e) {
-					ofLogError() << "Error while pressing shutter button halfway: " << e.what();
+                } catch (Eds::Exception& e) {
+                    ofLogError() << "Error while pressing shutter button halfway: " << e.what();
                     if(e == EDS_ERR_TAKE_PICTURE_AF_NG){
                         focusFailed();
                     }
@@ -523,25 +523,25 @@ namespace ofxEdsdk {
 
             if(needToReleaseShutterButton) {
                 try {
-					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
+                    Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
                     lock();
                     needToReleaseShutterButton = false;
                     unlock();
-				} catch (Eds::Exception& e) {
-					ofLogError() << "Error while releasing shutter button: " << e.what();
-				}
+                } catch (Eds::Exception& e) {
+                    ofLogError() << "Error while releasing shutter button: " << e.what();
+                }
             }
 
             if(needToCompletelyPressShutterButton){
                 try {
-					Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
+                    Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
                     lock();
                     needToReleaseShutterButton = true;
                     needToCompletelyPressShutterButton = false;
                     unlock();
-				} catch (Eds::Exception& e) {
-					ofLogError() << "Error while completely pressing shutter button: " << e.what();
-				}
+                } catch (Eds::Exception& e) {
+                    ofLogError() << "Error while completely pressing shutter button: " << e.what();
+                }
             }
 
 			float timeSinceLastReset = ofGetElapsedTimef() - lastResetTime;
