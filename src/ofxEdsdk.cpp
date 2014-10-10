@@ -71,11 +71,11 @@ namespace ofxEdsdk {
 	photoDataReady(false),
 	needToSendKeepAlive(false),
 	needToDownloadImage(false),
-    needToCheckFocus(false),
-    needToPressShutterButtonHalfway(false),
-    needToCompletelyPressShutterButton(false),
-    needToReleaseShutterButton(false),
-    currentFocusState(OFX_EDSDK_FOCUS_UNKNOWN),
+	needToCheckFocus(false),
+	needToPressShutterButtonHalfway(false),
+	needToCompletelyPressShutterButton(false),
+	needToReleaseShutterButton(false),
+	currentFocusState(OFX_EDSDK_FOCUS_UNKNOWN),
 #ifdef  TARGET_OSX
 	bTryInitLiveView(false),
 #endif
@@ -518,7 +518,7 @@ namespace ofxEdsdk {
                     if(e == EDS_ERR_TAKE_PICTURE_AF_NG){
                         focusFailed();
                     }
-				}
+                }
             }
 
             if(needToReleaseShutterButton) {
