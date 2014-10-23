@@ -246,6 +246,12 @@ namespace ofxEdsdk {
         needToCompletelyPressShutterButton = true;
         unlock();
     }
+    void Camera::takePhotoNonAF(){
+        lock();
+        needToCompletelyPressShutterButton = true;
+        currentFocusState = OFX_EDSDK_FOCUS_FAIL;
+        unlock();
+    }
 
     void Camera::beginMovieRecording()
     {
