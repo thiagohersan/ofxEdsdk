@@ -87,7 +87,7 @@ namespace ofxEdsdk {
 	}
 	
 	Camera::~Camera() {
-		waitForThread();
+		waitForThread(true, 500);
 		lock();
 		if(connected) {
 			if(liveReady) {
