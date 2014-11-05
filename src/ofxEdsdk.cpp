@@ -392,11 +392,6 @@ namespace ofxEdsdk {
 		// threaded variables:
 		// liveReady, liveBufferMiddle, liveBufferBack, fps, needToTakePhoto
 		while(isThreadRunning()) {
-            if(photoNew||needToReleaseShutterButton||needToCompletelyPressShutterButton||1){
-                cout << endl;
-                cout << "photonew = "+ofToString(photoNew) << endl;
-            }
-
 			if(liveReady) {
 				if(Eds::DownloadEvfData(camera, liveBufferBack)) {
 					lock();
