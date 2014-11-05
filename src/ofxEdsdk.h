@@ -13,7 +13,8 @@ namespace ofxEdsdk {
 	
 	class Camera : public ofThread {
 	public:
-        enum FocusState { OFX_EDSDK_FOCUS_UNKNOWN, OFX_EDSDK_FOCUSING, OFX_EDSDK_FOCUS_OK, OFX_EDSDK_FOCUS_FAIL };
+        enum FocusState { OFX_EDSDK_FOCUS_UNKNOWN, OFX_EDSDK_FOCUSING, OFX_EDSDK_FOCUS_OK,
+            OFX_EDSDK_FOCUS_FAIL, OFX_EDSDK_FOCUS_NONAF };
 		Camera();
 		~Camera();
 		bool setup(int deviceId = 0, int orientationMode90 = 0);

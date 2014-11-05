@@ -248,8 +248,8 @@ namespace ofxEdsdk {
     }
     void Camera::takePhotoNonAF(){
         lock();
+        currentFocusState = OFX_EDSDK_FOCUS_NONAF;
         needToCompletelyPressShutterButton = true;
-        currentFocusState = OFX_EDSDK_FOCUS_FAIL;
         unlock();
     }
 
@@ -392,6 +392,11 @@ namespace ofxEdsdk {
 		// threaded variables:
 		// liveReady, liveBufferMiddle, liveBufferBack, fps, needToTakePhoto
 		while(isThreadRunning()) {
+            if(photoNew||needToReleaseShutterButton||needToCompletelyPressShutterButton||1){
+                cout << endl;
+                cout << "photonew = "+ofToString(photoNew) << endl;
+            }
+
 			if(liveReady) {
 				if(Eds::DownloadEvfData(camera, liveBufferBack)) {
 					lock();
@@ -529,7 +534,7 @@ namespace ofxEdsdk {
 
             if(needToCompletelyPressShutterButton){
                 try {
-                    if(currentFocusState == OFX_EDSDK_FOCUS_FAIL){
+                    if((currentFocusState == OFX_EDSDK_FOCUS_FAIL) || (currentFocusState == OFX_EDSDK_FOCUS_NONAF)){
                         Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
                     }
                     else if(currentFocusState == OFX_EDSDK_FOCUS_OK){
