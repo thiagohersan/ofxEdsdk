@@ -44,6 +44,7 @@ namespace ofxEdsdk {
 
         void focusFrame();
         FocusState getFocusState();
+        bool isButtonReleased();
         void takePhotoAF();
         void takePhotoNonAF();
 

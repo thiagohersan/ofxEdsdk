@@ -206,6 +206,9 @@ namespace ofxEdsdk {
         return currentFocusState;
     }
 
+    bool Camera::isButtonReleased(){
+        return !(needToReleaseShutterButton || needToCompletelyPressShutterButton || needToPressShutterButtonHalfway);
+    }
 	float Camera::getFrameRate() {
 		float frameRate;
 		lock();
