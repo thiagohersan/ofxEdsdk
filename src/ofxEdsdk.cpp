@@ -207,7 +207,7 @@ namespace ofxEdsdk {
     }
 
     bool Camera::isButtonReleased(){
-        return !(needToReleaseShutterButton || needToCompletelyPressShutterButton || needToPressShutterButtonHalfway);
+        return !(needToCompletelyPressShutterButton || needToPressShutterButtonHalfway);
     }
 	float Camera::getFrameRate() {
 		float frameRate;
