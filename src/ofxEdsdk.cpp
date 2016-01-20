@@ -19,6 +19,7 @@
 #endif
 
 namespace ofxEdsdk {
+    ofEvent<void> Camera::onVolumeInfoChanged;
     
     EdsError EDSCALLBACK Camera::handleObjectEvent(EdsObjectEvent event, EdsBaseRef object, EdsVoid* context) {
         ofLogVerbose() << "object event " << Eds::getObjectEventString(event);
@@ -27,6 +28,8 @@ namespace ofxEdsdk {
                 ((Camera*) context)->setDownloadImage(object);
             } else if(event == kEdsObjectEvent_DirItemRemoved) {
                 // no need to release a removed item
+            } else if(event == kEdsObjectEvent_VolumeInfoChanged) {
+                ofNotifyEvent(Camera::onVolumeInfoChanged);
             } else {
                 try {
                     Eds::SafeRelease(object);

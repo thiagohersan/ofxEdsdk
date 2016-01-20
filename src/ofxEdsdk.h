@@ -121,5 +121,7 @@ namespace ofxEdsdk {
         
         int deviceId;
         int orientationMode;
+    public:
+        static ofEvent<void> onVolumeInfoChanged;
 	};
 }
