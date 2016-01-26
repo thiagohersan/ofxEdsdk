@@ -23,14 +23,15 @@ namespace ofxEdsdk {
     void* Camera::volumeInfoChangedCallbackParamater = NULL;
     
     EdsError EDSCALLBACK Camera::handleObjectEvent(EdsObjectEvent event, EdsBaseRef object, EdsVoid* context) {
-        ofLogVerbose() << "object event " << Eds::getObjectEventString(event);
+        //ofLogVerbose() << "object event " << Eds::getObjectEventString(event);
         if(object) {
-            if(event == kEdsObjectEvent_DirItemCreated) {
+            if(event == kEdsObjectEvent_VolumeInfoChanged) {
+                onVolumeInfoChangedCallbackFunction(volumeInfoChangedCallbackParamater);
+                ((Camera*) context)->setSendKeepAlive();
+            } else if(event == kEdsObjectEvent_DirItemCreated) {
                 ((Camera*) context)->setDownloadImage(object);
             } else if(event == kEdsObjectEvent_DirItemRemoved) {
                 // no need to release a removed item
-            } else if(event == kEdsObjectEvent_VolumeInfoChanged) {
-                onVolumeInfoChangedCallbackFunction(volumeInfoChangedCallbackParamater);
             } else {
                 try {
                     Eds::SafeRelease(object);
@@ -327,8 +328,8 @@ namespace ofxEdsdk {
                 EdsInt32 cameraIndex = deviceId;
                 Eds::GetChildAtIndex(cameraList, cameraIndex, &camera);
                 Eds::SetObjectEventHandler(camera, kEdsObjectEvent_All, handleObjectEvent, this);
-                Eds::SetPropertyEventHandler(camera, kEdsPropertyEvent_All, handlePropertyEvent, this);
-                Eds::SetCameraStateEventHandler(camera, kEdsStateEvent_All, handleCameraStateEvent, this);
+                //Eds::SetPropertyEventHandler(camera, kEdsPropertyEvent_All, handlePropertyEvent, this);
+                //Eds::SetCameraStateEventHandler(camera, kEdsStateEvent_All, handleCameraStateEvent, this);
                 
                 EdsDeviceInfo info;
                 Eds::GetDeviceInfo(camera, &info);
@@ -470,7 +471,7 @@ namespace ofxEdsdk {
 #endif
         while(isThreadRunning()) {
             captureLoop();
-            ofSleepMillis(5);
+            ofSleepMillis(30);
         }
 #if defined(TARGET_WIN32)
         CoUninitialize();
