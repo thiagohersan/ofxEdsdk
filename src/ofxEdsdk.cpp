@@ -471,7 +471,7 @@ namespace ofxEdsdk {
 #endif
         while(isThreadRunning()) {
             captureLoop();
-            ofSleepMillis(30);
+            ofSleepMillis(100);
         }
 #if defined(TARGET_WIN32)
         CoUninitialize();
